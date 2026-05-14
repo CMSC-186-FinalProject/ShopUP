@@ -15,7 +15,7 @@ const footerLinks = {
     { name: "Report an Issue", href: "#" }
   ],
   company: [
-    { name: "About Us", href: "#" },
+    { name: "About Us", href: "/about" },
     { name: "Contact", href: "#" },
     { name: "Privacy Policy", href: "#" },
     { name: "Terms of Service", href: "#" }
