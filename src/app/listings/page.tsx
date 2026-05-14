@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { Header } from '@/src/components/header'
 import { Footer } from '@/src/components/footer'
 import { ListingsHeader } from '@/src/components/listings-header'
@@ -56,19 +58,26 @@ function getLocation(listing: ListingRow) {
 }
 
 export default function ListingsPage() {
+  const searchParams = useSearchParams()
+  const initialCategorySlugs = useMemo(() => {
+    const value = searchParams.get('category')?.trim()
+    return value ? [value.toLowerCase()] : []
+  }, [searchParams])
+
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState('newest')
   const [filters, setFilters] = useState<{
     conditions: string[]
     categories: string[]
     priceRange: [number, number]
-  }>({
+  }>(() => ({
     conditions: [],
-    categories: [],
+    categories: initialCategorySlugs,
     priceRange: [0, 50000],
-  })
+  }))
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false)
   const [listings, setListings] = useState<ListingRow[]>([])
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set())
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -77,14 +86,19 @@ export default function ListingsPage() {
 
     const loadListings = async () => {
       try {
-        const response = await fetchApi<{ data: ListingRow[] }>('/api/listings?status=active&limit=100')
+        const [listingsResponse, favoritesResponse] = await Promise.all([
+          fetchApi<{ data: ListingRow[] }>('/api/listings?status=active&limit=100'),
+          fetchApi<{ data: ListingRow[] }>('/api/favorites').catch(() => ({ data: [] })),
+        ])
 
         if (isMounted) {
-          setListings(response.data)
+          setListings(listingsResponse.data)
+          const favoriteListingIds = new Set(favoritesResponse.data.map((fav) => fav.id))
+          setFavoriteIds(favoriteListingIds)
         }
-      } catch (error: unknown) {
+      } catch (loadError: unknown) {
         if (isMounted) {
-          setError(error instanceof Error ? error.message : 'Unable to load listings')
+          setError(loadError instanceof Error ? loadError.message : 'Unable to load listings')
         }
       } finally {
         if (isMounted) {
@@ -100,10 +114,21 @@ export default function ListingsPage() {
     }
   }, [])
 
+  const handleFavoriteToggle = (listingId: string, isFavorited: boolean) => {
+    setFavoriteIds((prev) => {
+      const newSet = new Set(prev)
+      if (isFavorited) {
+        newSet.add(listingId)
+      } else {
+        newSet.delete(listingId)
+      }
+      return newSet
+    })
+  }
+
   const filteredItems = useMemo(() => {
     let items = listings
 
-    // Filter by search query
     if (searchQuery) {
       items = items.filter(
         (item) =>
@@ -113,22 +138,24 @@ export default function ListingsPage() {
       )
     }
 
-    // Filter by condition
     if (filters.conditions.length > 0) {
       items = items.filter((item) => filters.conditions.includes(formatCondition(item.condition)))
     }
 
-    // Filter by category
     if (filters.categories.length > 0) {
-      items = items.filter((item) => filters.categories.includes(item.category?.name ?? ''))
+      items = items.filter((item) => {
+        const categoryName = item.category?.name?.toLowerCase() ?? ''
+        const categorySlug = item.category?.slug?.toLowerCase() ?? ''
+        const selectedCategories = filters.categories.map((category) => category.toLowerCase())
+
+        return selectedCategories.includes(categoryName) || selectedCategories.includes(categorySlug)
+      })
     }
 
-    // Filter by price range
     items = items.filter(
       (item) => item.price >= filters.priceRange[0] && item.price <= filters.priceRange[1]
     )
 
-    // Sort items
     switch (sortBy) {
       case 'price-low':
         items.sort((a, b) => a.price - b.price)
@@ -161,25 +188,20 @@ export default function ListingsPage() {
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-8">
         <div className="flex gap-6 flex-col md:flex-row">
-          {/* Sidebar Filters - Hidden on mobile, visible on larger screens */}
           <aside className="hidden md:block">
-            <ListingsFilters onFiltersChange={setFilters} />
+            <ListingsFilters onFiltersChange={setFilters} initialCategorySlugs={initialCategorySlugs} activeFilters={filters} />
           </aside>
 
-          {/* Mobile Filters - Visible when opened */}
           {mobileFilterOpen && (
             <aside className="md:hidden mb-6 border-t border-border pt-6">
-              <ListingsFilters onFiltersChange={setFilters} />
+              <ListingsFilters onFiltersChange={setFilters} initialCategorySlugs={initialCategorySlugs} activeFilters={filters} />
             </aside>
           )}
 
-          {/* Products Grid */}
           <div className="flex-1">
             {error ? (
               <div className="py-20 text-center">
-                <h3 className="text-lg font-semibold text-foreground mb-2">
-                  Unable to load listings
-                </h3>
+                <h3 className="text-lg font-semibold text-foreground mb-2">Unable to load listings</h3>
                 <p className="text-muted-foreground">{error}</p>
               </div>
             ) : isLoading ? (
@@ -191,28 +213,26 @@ export default function ListingsPage() {
             ) : filteredItems.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {filteredItems.map((item) => (
-                  <ProductCard
-                    key={item.id}
-                    id={item.id}
-                    title={item.title}
-                    price={item.price}
-                    image={getFirstImage(item)}
-                    seller={getSellerName(item)}
-                    sellerRating={item.seller_rating ?? 0}
-                    condition={formatCondition(item.condition)}
-                    category={item.category?.name ?? 'Uncategorized'}
-                    location={getLocation(item)}
-                  />
+                  <Link key={item.id} href={`/listings/${item.id}`}>
+                    <ProductCard
+                      id={item.id}
+                      title={item.title}
+                      price={item.price}
+                      image={getFirstImage(item)}
+                      seller={getSellerName(item)}
+                      sellerRating={item.seller_rating ?? 0}
+                      condition={formatCondition(item.condition)}
+                      category={item.category?.name ?? 'Uncategorized'}
+                      location={getLocation(item)}
+                      initiallyFavorited={favoriteIds.has(item.id)}
+                    />
+                  </Link>
                 ))}
               </div>
             ) : (
               <div className="col-span-full py-20 text-center">
-                <h3 className="text-lg font-semibold text-foreground mb-2">
-                  No items found
-                </h3>
-                <p className="text-muted-foreground mb-6">
-                  Try adjusting your filters or search query
-                </p>
+                <h3 className="text-lg font-semibold text-foreground mb-2">No items found</h3>
+                <p className="text-muted-foreground mb-6">Try adjusting your filters or search query</p>
                 <button
                   onClick={() => {
                     setSearchQuery('')

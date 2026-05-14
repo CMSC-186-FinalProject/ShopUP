@@ -13,8 +13,10 @@ import { Badge } from '@/src/components/ui/badge'
 import { fetchApi } from '@/src/lib/api'
 import { getFriendlyErrorMessage } from '@/src/lib/error-messages'
 import { Avatar, AvatarFallback, AvatarImage } from '@/src/components/ui/avatar'
+import { AvatarCropDialog } from '@/src/components/avatar-crop-dialog'
 import { Edit3, MapPin, Mail, User, Package, MessageSquare, Star } from 'lucide-react'
 import { uploadToCloudinary } from '@/src/lib/cloudinary-upload'
+import { setAuthState } from '@/src/lib/auth-state'
 
 interface MeProfile {
   id: string
@@ -44,6 +46,9 @@ interface ProfileFormState {
 export default function ProfilePage() {
   const router = useRouter()
   const avatarInputRef = useRef<HTMLInputElement | null>(null)
+  const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null)
+  const [avatarCropSrc, setAvatarCropSrc] = useState<string | null>(null)
+  const [isAvatarCropOpen, setIsAvatarCropOpen] = useState(false)
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [profileId, setProfileId] = useState<string | null>(null)
   const [form, setForm] = useState<ProfileFormState>({
@@ -119,6 +124,14 @@ export default function ProfilePage() {
       .toUpperCase()
   }, [form.fullName, form.username, userEmail])
 
+  useEffect(() => {
+    return () => {
+      if (avatarCropSrc) {
+        URL.revokeObjectURL(avatarCropSrc)
+      }
+    }
+  }, [avatarCropSrc])
+
   const hasChanges = useMemo(() => {
     if (!originalProfile) {
       return Boolean(form.fullName || form.username || form.avatarUrl || form.campus || form.bio)
@@ -149,18 +162,36 @@ export default function ProfilePage() {
       return
     }
 
+    setError(null)
+    setSuccess(null)
+
+    if (avatarCropSrc) {
+      URL.revokeObjectURL(avatarCropSrc)
+    }
+
+    setSelectedAvatarFile(file)
+    setAvatarCropSrc(URL.createObjectURL(file))
+    setIsAvatarCropOpen(true)
+    event.target.value = ''
+  }
+
+  const handleAvatarCropComplete = async (croppedFile: File) => {
     setIsUploadingAvatar(true)
     setError(null)
     setSuccess(null)
 
     try {
-      const uploaded = await uploadToCloudinary(file, 'shopup/avatars')
+      const uploaded = await uploadToCloudinary(croppedFile, 'shopup/avatars')
       setForm((current) => ({ ...current, avatarUrl: uploaded.secureUrl }))
     } catch (error: unknown) {
       setError(getFriendlyErrorMessage(error) || 'Unable to upload avatar')
     } finally {
       setIsUploadingAvatar(false)
-      event.target.value = ''
+      setSelectedAvatarFile(null)
+      if (avatarCropSrc) {
+        URL.revokeObjectURL(avatarCropSrc)
+      }
+      setAvatarCropSrc(null)
     }
   }
 
@@ -193,6 +224,12 @@ export default function ProfilePage() {
         avatarUrl: refreshed.profile?.avatar_url ?? '',
         campus: refreshed.profile?.campus ?? '',
         bio: refreshed.profile?.bio ?? '',
+      })
+      setAuthState(true, {
+        fullName: refreshed.profile?.full_name ?? null,
+        username: refreshed.profile?.username ?? null,
+        avatarUrl: refreshed.profile?.avatar_url ?? null,
+        email: refreshed.user.email,
       })
       setSuccess('Profile updated successfully.')
     } catch (error: unknown) {
@@ -281,6 +318,24 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 </div>
+
+                <AvatarCropDialog
+                  open={isAvatarCropOpen}
+                  imageSrc={avatarCropSrc}
+                  fileName={selectedAvatarFile?.name ?? 'avatar.jpg'}
+                  onOpenChange={(open) => {
+                    setIsAvatarCropOpen(open)
+
+                    if (!open) {
+                      setSelectedAvatarFile(null)
+                      if (avatarCropSrc) {
+                        URL.revokeObjectURL(avatarCropSrc)
+                      }
+                      setAvatarCropSrc(null)
+                    }
+                  }}
+                  onCropComplete={handleAvatarCropComplete}
+                />
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">

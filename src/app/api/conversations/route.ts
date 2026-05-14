@@ -67,6 +67,43 @@ export async function POST(request: Request) {
     return json({ error: 'Sellers cannot start conversations with their own listing' }, 400)
   }
 
+  // Ensure buyer profile exists
+  const { data: buyerProfile, error: buyerProfileError } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  if (buyerProfileError) {
+    return json({ error: buyerProfileError.message }, 500)
+  }
+
+  if (!buyerProfile) {
+    // Create a basic profile if it doesn't exist
+    const { error: createBuyerError } = await supabase.from('profiles').insert({
+      id: user.id,
+    })
+
+    if (createBuyerError) {
+      return json({ error: 'Unable to create your profile' }, 400)
+    }
+  }
+
+  // Ensure seller profile exists
+  const { data: sellerProfile, error: sellerProfileError } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', listing.seller_id)
+    .maybeSingle()
+
+  if (sellerProfileError) {
+    return json({ error: sellerProfileError.message }, 500)
+  }
+
+  if (!sellerProfile) {
+    return json({ error: 'Seller profile not found' }, 400)
+  }
+
   const { data: existingConversation } = await supabase
     .from('conversations')
     .select(CONVERSATION_SELECT)

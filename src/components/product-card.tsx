@@ -4,6 +4,7 @@ import { Heart, MapPin } from 'lucide-react'
 import Image from 'next/image'
 import { useState } from 'react'
 import { Button } from '@/src/components/ui/button'
+import { fetchApi } from '@/src/lib/api'
 
 interface ProductCardProps {
   id: string
@@ -15,6 +16,7 @@ interface ProductCardProps {
   condition: 'like-new' | 'good' | 'fair' | 'for-parts'
   category: string
   location: string
+  initiallyFavorited?: boolean
 }
 
 export function ProductCard({
@@ -27,8 +29,10 @@ export function ProductCard({
   condition,
   category,
   location,
+  initiallyFavorited = false,
 }: ProductCardProps) {
-  const [isFavorited, setIsFavorited] = useState(false)
+  const [isFavorited, setIsFavorited] = useState(initiallyFavorited)
+  const [isLoading, setIsLoading] = useState(false)
 
   const conditionColors = {
     'like-new': 'bg-green-100 text-green-800',
@@ -44,6 +48,31 @@ export function ProductCard({
     'for-parts': 'For Parts',
   }
 
+  const handleToggleFavorite = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    const previousState = isFavorited
+    try {
+      setIsLoading(true)
+      if (isFavorited) {
+        await fetchApi(`/api/favorites/${id}`, { method: 'DELETE' })
+      } else {
+        await fetchApi('/api/favorites', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ listingId: id }),
+        })
+      }
+      setIsFavorited(!previousState)
+    } catch (err) {
+      // Revert to previous state on error
+      setIsFavorited(previousState)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <div className="bg-card rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col h-full">
       {/* Image Container */}
@@ -53,6 +82,7 @@ export function ProductCard({
           alt={title}
           fill
           className="object-cover hover:scale-105 transition-transform duration-300"
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
         />
         {/* Condition Badge */}
         <div className={`absolute top-3 left-3 px-2 py-1 rounded-full text-xs font-semibold ${conditionColors[condition]}`}>
@@ -63,7 +93,8 @@ export function ProductCard({
           variant="ghost"
           size="icon"
           className="absolute top-3 right-3 bg-white/90 hover:bg-white rounded-full h-8 w-8"
-          onClick={() => setIsFavorited(!isFavorited)}
+          onClick={handleToggleFavorite}
+          disabled={isLoading}
         >
           <Heart
             className={`h-4 w-4 ${isFavorited ? 'fill-primary text-primary' : 'text-gray-600'}`}

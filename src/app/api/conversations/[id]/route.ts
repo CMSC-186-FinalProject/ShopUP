@@ -1,8 +1,8 @@
-import { getRouteParams, getSupabaseContext, json } from '../../_lib'
+import { getRouteParams, getSupabaseContext, json, LISTING_SELECT, formatListingRow } from '../../_lib'
 
 const CONVERSATION_SELECT = `
   *,
-  listing:listings!conversations_listing_id_fkey(*),
+  listing:listings!conversations_listing_id_fkey(${LISTING_SELECT}),
   buyer:profiles!conversations_buyer_id_fkey(id, full_name, username, avatar_url, campus),
   seller:profiles!conversations_seller_id_fkey(id, full_name, username, avatar_url, campus)
 `
@@ -34,5 +34,10 @@ export async function GET(
     return json({ error: 'Conversation not found' }, 404)
   }
 
-  return json({ data })
+  return json({
+    data: {
+      ...data,
+      listing: data.listing ? formatListingRow(data.listing) : null,
+    },
+  })
 }

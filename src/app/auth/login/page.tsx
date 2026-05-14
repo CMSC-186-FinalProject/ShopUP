@@ -14,7 +14,20 @@ import { Label } from '@/src/components/ui/label'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { fetchApi } from '@/src/lib/api'
 import { setAuthState } from '@/src/lib/auth-state'
+
+interface MeResponse {
+  user: {
+    id: string
+    email: string | null
+  }
+  profile: {
+    full_name: string | null
+    username: string | null
+    avatar_url: string | null
+  } | null
+}
 
 function isUpEmailAddress(email: string) {
   return email.trim().toLowerCase().endsWith('@up.edu.ph')
@@ -46,7 +59,24 @@ export default function LoginPage() {
         password,
       })
       if (error) throw error
-      setAuthState(true)
+
+      try {
+        const response = await fetchApi<MeResponse>('/api/me')
+        setAuthState(true, {
+          fullName: response.profile?.full_name ?? null,
+          username: response.profile?.username ?? null,
+          avatarUrl: response.profile?.avatar_url ?? null,
+          email: response.user.email,
+        })
+      } catch {
+        setAuthState(true, {
+          fullName: null,
+          username: null,
+          avatarUrl: null,
+          email: normalizedEmail,
+        })
+      }
+
       router.push('/listings')
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'An error occurred')

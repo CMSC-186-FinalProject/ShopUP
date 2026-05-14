@@ -137,6 +137,7 @@ export function MyListings() {
                   alt={listing.title}
                   fill
                   className="object-cover"
+                  sizes="(max-width: 640px) 100vw, 50vw"
                 />
                 <Badge
                   className={`absolute top-3 right-3 ${

@@ -7,6 +7,12 @@ import { fetchApi } from '@/src/lib/api'
 
 interface ListingsFiltersProps {
   onFiltersChange: (filters: any) => void
+  initialCategorySlugs?: string[]
+  activeFilters?: {
+    conditions: string[]
+    categories: string[]
+    priceRange: [number, number]
+  }
 }
 
 interface CategoryItem {
@@ -17,7 +23,7 @@ interface CategoryItem {
 
 type FilterSection = 'categories' | 'price' | 'condition'
 
-export function ListingsFilters({ onFiltersChange }: ListingsFiltersProps) {
+export function ListingsFilters({ onFiltersChange, initialCategorySlugs = [], activeFilters }: ListingsFiltersProps) {
   const [priceRange, setPriceRange] = useState([0, 50000])
   const [selectedConditions, setSelectedConditions] = useState<string[]>([])
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
@@ -38,6 +44,20 @@ export function ListingsFilters({ onFiltersChange }: ListingsFiltersProps) {
 
         if (isMounted) {
           setCategories(response.data)
+
+          if (initialCategorySlugs.length > 0) {
+            const matchedCategoryNames = response.data
+              .filter((category) =>
+                initialCategorySlugs.includes(
+                  category.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+                )
+              )
+              .map((category) => category.name)
+
+            if (matchedCategoryNames.length > 0) {
+              setSelectedCategories(matchedCategoryNames)
+            }
+          }
         }
       } finally {
         if (isMounted) {
@@ -51,7 +71,16 @@ export function ListingsFilters({ onFiltersChange }: ListingsFiltersProps) {
     return () => {
       isMounted = false
     }
-  }, [])
+  }, [initialCategorySlugs])
+
+  // Sync local UI when parent updates filters (e.g., Clear all filters)
+  useEffect(() => {
+    if (!activeFilters) return
+
+    setSelectedConditions(activeFilters.conditions ?? [])
+    setSelectedCategories(activeFilters.categories ?? [])
+    setPriceRange(activeFilters.priceRange ?? [0, 50000])
+  }, [activeFilters])
 
   const conditions = [
     { value: 'like-new', label: 'Like New' },
@@ -68,28 +97,26 @@ export function ListingsFilters({ onFiltersChange }: ListingsFiltersProps) {
   }
 
   const toggleCondition = (value: string) => {
-    setSelectedConditions((prev) => {
-      const updated = prev.includes(value)
-        ? prev.filter((c) => c !== value)
-        : [...prev, value]
-      onFiltersChange({ conditions: updated, categories: selectedCategories, priceRange })
-      return updated
-    })
+    const updated = selectedConditions.includes(value)
+      ? selectedConditions.filter((c) => c !== value)
+      : [...selectedConditions, value]
+
+    setSelectedConditions(updated)
+    onFiltersChange({ conditions: updated, categories: selectedCategories, priceRange })
   }
 
   const toggleCategory = (name: string) => {
-    setSelectedCategories((prev) => {
-      const updated = prev.includes(name)
-        ? prev.filter((c) => c !== name)
-        : [...prev, name]
-      onFiltersChange({ conditions: selectedConditions, categories: updated, priceRange })
-      return updated
-    })
+    const updated = selectedCategories.includes(name)
+      ? selectedCategories.filter((c) => c !== name)
+      : [...selectedCategories, name]
+
+    setSelectedCategories(updated)
+    onFiltersChange({ conditions: selectedConditions, categories: updated, priceRange })
   }
 
   const handlePriceChange = (value: number[]) => {
     setPriceRange(value)
-    onFiltersChange({ conditions: selectedConditions, categories: selectedCategories, priceRange: value })
+    onFiltersChange({ conditions: selectedConditions, categories: selectedCategories, priceRange: value as [number, number] })
   }
 
   const hasActiveFilters = selectedConditions.length > 0 || selectedCategories.length > 0

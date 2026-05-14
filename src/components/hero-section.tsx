@@ -65,7 +65,7 @@ export function HeroSection() {
 
   return (
     <section className="relative overflow-hidden bg-primary py-20 lg:py-32">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-accent/20 via-transparent to-transparent" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-accent/20 via-transparent to-transparent" />
       <div className="container relative mx-auto px-4">
         <div className="grid gap-12 lg:grid-cols-2 lg:gap-8 items-center">
           <div className="max-w-2xl">
@@ -117,26 +117,39 @@ export function HeroSection() {
             </div>
           </div>
           <div className="relative lg:pl-8">
-            <div className="relative mx-auto max-w-md lg:max-w-none">
+              <div className="relative mx-auto max-w-md lg:max-w-none">
               <div className="absolute -inset-4 bg-primary-foreground/5 rounded-3xl blur-2xl" />
               <div className="relative grid grid-cols-2 gap-4">
                 {featuredListings.length > 0 ? (
-                  featuredListings.map((listing, index) => (
-                    <div key={listing.id} className={`overflow-hidden rounded-2xl bg-card shadow-xl ${index % 2 === 1 ? 'pt-8' : ''}`}>
-                      <div className={`relative bg-muted ${index % 2 === 0 ? 'aspect-square' : 'aspect-[4/3]'}`}>
-                        <Image
-                          src={listing.images[0]?.image_url ?? '/placeholder.svg'}
-                          alt={listing.title}
-                          fill
-                          className="object-cover"
-                        />
+                  featuredListings.map((listing, index) => {
+                    const heightClass =
+                      index % 4 === 0
+                        ? 'h-64 lg:h-72'
+                        : index % 4 === 1
+                        ? 'h-48 lg:h-56'
+                        : index % 4 === 2
+                        ? 'h-56 lg:h-64'
+                        : 'h-40 lg:h-48'
+
+                    return (
+                      <div key={listing.id} className={`overflow-hidden rounded-2xl bg-card shadow-xl`}>
+                        <div className={`relative bg-muted ${heightClass} overflow-hidden`}> 
+                          <Image
+                            src={listing.images[0]?.image_url ?? '/placeholder.svg'}
+                            alt={listing.title}
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 40vw, 30vw"
+                            loading={index === 0 ? 'eager' : 'lazy'}
+                          />
+                        </div>
+                        <div className="p-4">
+                          <p className="font-medium text-card-foreground line-clamp-1">{listing.title}</p>
+                          <p className="text-sm text-muted-foreground">₱{listing.price.toLocaleString()}</p>
+                        </div>
                       </div>
-                      <div className="p-4">
-                        <p className="font-medium text-card-foreground line-clamp-1">{listing.title}</p>
-                        <p className="text-sm text-muted-foreground">₱{listing.price.toLocaleString()}</p>
-                      </div>
-                    </div>
-                  ))
+                    )
+                  })
                 ) : (
                   <>
                     <div className="space-y-4">

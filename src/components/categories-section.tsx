@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { fetchApi } from "@/src/lib/api"
 
@@ -27,6 +28,10 @@ const categoryEmojis: Record<string, string> = {
   Other: '🎒',
   'Musical Instruments': '🎸',
   'Tickets & Vouchers': '🎟️',
+}
+
+function getCategoryHref(category: CategoryCard) {
+  return `/listings?category=${encodeURIComponent(category.slug)}`
 }
 
 export function CategoriesSection() {
@@ -90,9 +95,11 @@ export function CategoriesSection() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {categories.map((category) => (
-            <button
+            <Link
               key={category.id}
-              onClick={() => setActiveCategory(activeCategory === category.name ? null : category.name)}
+              href={getCategoryHref(category)}
+              onMouseEnter={() => setActiveCategory(category.name)}
+              onMouseLeave={() => setActiveCategory(null)}
               className={cn(
                 "group relative overflow-hidden rounded-2xl border p-6 text-left transition-all duration-300",
                 activeCategory === category.name
@@ -117,7 +124,7 @@ export function CategoriesSection() {
               <p className="text-sm text-muted-foreground">
                 {category.description ?? 'Browse items in this category.'}
               </p>
-            </button>
+            </Link>
           ))}
           </div>
         )}
