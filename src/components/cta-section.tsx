@@ -1,4 +1,5 @@
 import { Button } from "@/src/components/ui/button"
+import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 
 export function CTASection() {
@@ -11,11 +12,11 @@ export function CTASection() {
           </h2>
           <p className="mt-6 text-lg text-primary-foreground/80 max-w-2xl mx-auto">
             Whether you&apos;re looking to declutter, find great deals, or connect with fellow students, 
-            UPTrade is your community marketplace. Sign up now and start trading!
+            ShopUP is your community marketplace. Sign up now and start trading!
           </p>
           <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" variant="secondary" className="text-base">
-              Create Free Account
+              <Link href="/auth/sign-up">Create Free Account</Link>
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
             <Button 
