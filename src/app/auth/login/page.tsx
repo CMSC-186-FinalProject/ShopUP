@@ -14,6 +14,7 @@ import { Label } from '@/src/components/ui/label'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { setAuthState } from '@/src/lib/auth-state'
 
 function isUpEmailAddress(email: string) {
   return email.trim().toLowerCase().endsWith('@up.edu.ph')
@@ -45,6 +46,7 @@ export default function LoginPage() {
         password,
       })
       if (error) throw error
+      setAuthState(true)
       router.push('/listings')
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'An error occurred')

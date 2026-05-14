@@ -6,10 +6,11 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/src/components/ui/button"
 import { Menu, X, ShoppingBag } from "lucide-react"
 import { createClient } from "@/utils/supabase/client"
+import { getAuthState, setAuthState } from "@/src/lib/auth-state"
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(() => getAuthState())
   const router = useRouter()
 
   useEffect(() => {
@@ -18,9 +19,11 @@ export function Header() {
 
     const syncAuthState = async () => {
       const { data } = await supabase.auth.getUser()
+      const nextIsAuthenticated = Boolean(data.user)
 
       if (isMounted) {
-        setIsAuthenticated(Boolean(data.user))
+        setAuthState(nextIsAuthenticated)
+        setIsAuthenticated(nextIsAuthenticated)
       }
     }
 
@@ -29,7 +32,9 @@ export function Header() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(Boolean(session?.user))
+      const nextIsAuthenticated = Boolean(session?.user)
+      setAuthState(nextIsAuthenticated)
+      setIsAuthenticated(nextIsAuthenticated)
     })
 
     return () => {
@@ -41,6 +46,7 @@ export function Header() {
   const handleSignOut = async () => {
     const supabase = createClient()
     await supabase.auth.signOut()
+    setAuthState(false)
     setIsAuthenticated(false)
     setIsMenuOpen(false)
     router.push('/')
