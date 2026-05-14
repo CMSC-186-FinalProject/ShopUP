@@ -25,7 +25,7 @@ export function HeroSection() {
             </p>
             <div className="mt-10 flex flex-col sm:flex-row gap-4">
               <Button size="lg" variant="secondary" className="text-base">
-                Start Selling
+                <Link href="/seller/dashboard">Start Selling</Link>
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
               <Button size="lg" variant="outline" className="text-base bg-transparent border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground">
