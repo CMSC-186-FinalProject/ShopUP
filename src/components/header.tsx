@@ -1,12 +1,51 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/src/components/ui/button"
 import { Menu, X, ShoppingBag } from "lucide-react"
+import { createClient } from "@/utils/supabase/client"
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const router = useRouter()
+
+  useEffect(() => {
+    const supabase = createClient()
+    let isMounted = true
+
+    const syncAuthState = async () => {
+      const { data } = await supabase.auth.getUser()
+
+      if (isMounted) {
+        setIsAuthenticated(Boolean(data.user))
+      }
+    }
+
+    syncAuthState()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(Boolean(session?.user))
+    })
+
+    return () => {
+      isMounted = false
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  const handleSignOut = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    setIsAuthenticated(false)
+    setIsMenuOpen(false)
+    router.push('/')
+    router.refresh()
+  }
 
   return (
     <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 border-b border-border">
@@ -20,27 +59,35 @@ export function Header() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-8">
-            <Link href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="/#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               Features
             </Link>
-            <Link href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="/#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               How It Works
             </Link>
-            <Link href="#categories" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="/#categories" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               Categories
             </Link>
-            {/* <Link href="#testimonials" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-              Testimonials
-            </Link> */}
+            <Link href="/listings" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              Listings
+            </Link>
           </nav>
 
           <div className="hidden md:flex items-center gap-4">
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/auth/login">Log in</Link>
-            </Button>
-            <Button asChild size="sm">
-              <Link href="/auth/sign-up">Sign up</Link>
-            </Button>
+            {isAuthenticated ? (
+              <Button variant="outline" size="sm" onClick={handleSignOut}>
+                Sign out
+              </Button>
+            ) : (
+              <>
+                <Button asChild variant="ghost" size="sm">
+                  <Link href="/auth/login">Log in</Link>
+                </Button>
+                <Button asChild size="sm">
+                  <Link href="/auth/sign-up">Sign up</Link>
+                </Button>
+              </>
+            )}
           </div>
 
           <button
@@ -88,16 +135,24 @@ export function Header() {
                 Testimonials
               </Link>
               <div className="flex flex-col gap-2 pt-4 border-t border-border">
-                <Button asChild variant="ghost" size="sm" className="justify-start">
-                  <Link href="/auth/login" onClick={() => setIsMenuOpen(false)}>
-                    Log in
-                  </Link>
-                </Button>
-                <Button asChild size="sm">
-                  <Link href="/auth/sign-up" onClick={() => setIsMenuOpen(false)}>
-                    Sign up
-                  </Link>
-                </Button>
+                {isAuthenticated ? (
+                  <Button variant="outline" size="sm" className="justify-start" onClick={handleSignOut}>
+                    Sign out
+                  </Button>
+                ) : (
+                  <>
+                    <Button asChild variant="ghost" size="sm" className="justify-start">
+                      <Link href="/auth/login" onClick={() => setIsMenuOpen(false)}>
+                        Log in
+                      </Link>
+                    </Button>
+                    <Button asChild size="sm">
+                      <Link href="/auth/sign-up" onClick={() => setIsMenuOpen(false)}>
+                        Sign up
+                      </Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </nav>
           </div>

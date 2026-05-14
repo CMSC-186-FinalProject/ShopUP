@@ -1,4 +1,5 @@
 import { Button } from "@/src/components/ui/button"
+import Link from "next/link"
 import { ArrowRight, Users, ShieldCheck, Zap } from "lucide-react"
 
 export function HeroSection() {
@@ -28,7 +29,7 @@ export function HeroSection() {
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
               <Button size="lg" variant="outline" className="text-base bg-transparent border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground">
-                Browse Listings
+                <Link href="/listings">Browse Listings</Link>
               </Button>
             </div>
             <div className="mt-12 grid grid-cols-3 gap-6">
