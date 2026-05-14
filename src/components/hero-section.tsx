@@ -1,8 +1,68 @@
+"use client"
+
+import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { Button } from "@/src/components/ui/button"
 import Link from "next/link"
 import { ArrowRight, Users, ShieldCheck, Zap } from "lucide-react"
+import { fetchApi } from "@/src/lib/api"
+
+interface HomeStats {
+  activeUsers: number
+  verifiedStudents: number
+  itemsTraded: number
+  activeListings: number
+}
+
+interface FeaturedListing {
+  id: string
+  title: string
+  price: number
+  images: Array<{ image_url: string }>
+}
 
 export function HeroSection() {
+  const [stats, setStats] = useState<HomeStats | null>(null)
+  const [featuredListings, setFeaturedListings] = useState<FeaturedListing[]>([])
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadStats = async () => {
+      try {
+        const [statsResponse, listingsResponse] = await Promise.all([
+          fetchApi<{ data: HomeStats }>('/api/home-stats'),
+          fetchApi<{ data: FeaturedListing[] }>('/api/listings?status=active&limit=4&sort=popular'),
+        ])
+
+        if (isMounted) {
+          setStats(statsResponse.data)
+          setFeaturedListings(listingsResponse.data)
+        }
+      } catch {
+        if (isMounted) {
+          setStats({
+            activeUsers: 0,
+            verifiedStudents: 0,
+            itemsTraded: 0,
+            activeListings: 0,
+          })
+          setFeaturedListings([])
+        }
+      }
+    }
+
+    loadStats()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  const activeUsers = stats?.activeUsers ?? '—'
+  const activeListings = stats?.activeListings ?? '—'
+  const itemsTraded = stats?.itemsTraded ?? '—'
+
   return (
     <section className="relative overflow-hidden bg-primary py-20 lg:py-32">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-accent/20 via-transparent to-transparent" />
@@ -36,21 +96,21 @@ export function HeroSection() {
               <div className="flex flex-col">
                 <div className="flex items-center gap-2 text-primary-foreground">
                   <Users className="h-5 w-5" />
-                  <span className="text-2xl font-bold">500+</span>
+                  <span className="text-2xl font-bold">{activeUsers}</span>
                 </div>
                 <span className="text-sm text-primary-foreground/70">Active Users</span>
               </div>
               <div className="flex flex-col">
                 <div className="flex items-center gap-2 text-primary-foreground">
                   <ShieldCheck className="h-5 w-5" />
-                  <span className="text-2xl font-bold">100%</span>
+                    <span className="text-2xl font-bold">{activeListings}</span>
                 </div>
-                <span className="text-sm text-primary-foreground/70">Verified Students</span>
+                  <span className="text-sm text-primary-foreground/70">Active Listings</span>
               </div>
               <div className="flex flex-col">
                 <div className="flex items-center gap-2 text-primary-foreground">
                   <Zap className="h-5 w-5" />
-                  <span className="text-2xl font-bold">1,000+</span>
+                  <span className="text-2xl font-bold">{itemsTraded}</span>
                 </div>
                 <span className="text-sm text-primary-foreground/70">Items Traded</span>
               </div>
@@ -60,46 +120,35 @@ export function HeroSection() {
             <div className="relative mx-auto max-w-md lg:max-w-none">
               <div className="absolute -inset-4 bg-primary-foreground/5 rounded-3xl blur-2xl" />
               <div className="relative grid grid-cols-2 gap-4">
-                <div className="space-y-4">
-                  <div className="overflow-hidden rounded-2xl bg-card shadow-xl">
-                    <div className="aspect-square bg-muted flex items-center justify-center">
-                      <span className="text-6xl">📚</span>
+                {featuredListings.length > 0 ? (
+                  featuredListings.map((listing, index) => (
+                    <div key={listing.id} className={`overflow-hidden rounded-2xl bg-card shadow-xl ${index % 2 === 1 ? 'pt-8' : ''}`}>
+                      <div className={`relative bg-muted ${index % 2 === 0 ? 'aspect-square' : 'aspect-[4/3]'}`}>
+                        <Image
+                          src={listing.images[0]?.image_url ?? '/placeholder.svg'}
+                          alt={listing.title}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="p-4">
+                        <p className="font-medium text-card-foreground line-clamp-1">{listing.title}</p>
+                        <p className="text-sm text-muted-foreground">₱{listing.price.toLocaleString()}</p>
+                      </div>
                     </div>
-                    <div className="p-4">
-                      <p className="font-medium text-card-foreground">Engineering Textbooks</p>
-                      <p className="text-sm text-muted-foreground">₱350</p>
+                  ))
+                ) : (
+                  <>
+                    <div className="space-y-4">
+                      <div className="h-48 rounded-2xl bg-card shadow-xl animate-pulse" />
+                      <div className="h-40 rounded-2xl bg-card shadow-xl animate-pulse" />
                     </div>
-                  </div>
-                  <div className="overflow-hidden rounded-2xl bg-card shadow-xl">
-                    <div className="aspect-[4/3] bg-muted flex items-center justify-center">
-                      <span className="text-5xl">🎧</span>
+                    <div className="space-y-4 pt-8">
+                      <div className="h-40 rounded-2xl bg-card shadow-xl animate-pulse" />
+                      <div className="h-48 rounded-2xl bg-card shadow-xl animate-pulse" />
                     </div>
-                    <div className="p-4">
-                      <p className="font-medium text-card-foreground">Wireless Earbuds</p>
-                      <p className="text-sm text-muted-foreground">₱800</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-4 pt-8">
-                  <div className="overflow-hidden rounded-2xl bg-card shadow-xl">
-                    <div className="aspect-[4/3] bg-muted flex items-center justify-center">
-                      <span className="text-5xl">💻</span>
-                    </div>
-                    <div className="p-4">
-                      <p className="font-medium text-card-foreground">Laptop Stand</p>
-                      <p className="text-sm text-muted-foreground">₱450</p>
-                    </div>
-                  </div>
-                  <div className="overflow-hidden rounded-2xl bg-card shadow-xl">
-                    <div className="aspect-square bg-muted flex items-center justify-center">
-                      <span className="text-6xl">🎒</span>
-                    </div>
-                    <div className="p-4">
-                      <p className="font-medium text-card-foreground">School Backpack</p>
-                      <p className="text-sm text-muted-foreground">₱600</p>
-                    </div>
-                  </div>
-                </div>
+                  </>
+                )}
               </div>
             </div>
           </div>

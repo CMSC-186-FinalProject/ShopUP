@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Card } from '@/src/components/ui/card'
 import { Button } from '@/src/components/ui/button'
 import { Badge } from '@/src/components/ui/badge'
@@ -13,6 +13,7 @@ import {
 } from '@/src/components/ui/dropdown-menu'
 import { Eye, MessageSquare, MoreVertical, Edit2, Trash2 } from 'lucide-react'
 import Image from 'next/image'
+import { fetchApi } from '@/src/lib/api'
 
 interface Listing {
   id: string
@@ -26,63 +27,68 @@ interface Listing {
   postedDate: string
 }
 
-const SAMPLE_LISTINGS: Listing[] = [
-  {
-    id: '1',
-    title: 'Advanced Calculus Textbook',
-    price: 450,
-    image:
-      'https://images.unsplash.com/photo-150784272343-583f20270319?w=400&h=300&fit=crop',
-    category: 'Textbooks',
-    status: 'active',
-    views: 24,
-    inquiries: 3,
-    postedDate: '2 days ago',
-  },
-  {
-    id: '2',
-    title: 'Gaming Laptop - Dell G15',
-    price: 28000,
-    image:
-      'https://images.unsplash.com/photo-1588872657840-218e412ee5ff?w=400&h=300&fit=crop',
-    category: 'Electronics',
-    status: 'active',
-    views: 156,
-    inquiries: 12,
-    postedDate: '1 week ago',
-  },
-  {
-    id: '3',
-    title: 'Vintage Denim Jacket',
-    price: 650,
-    image:
-      'https://images.unsplash.com/photo-1551028719-00167b16ebc5?w=400&h=300&fit=crop',
-    category: 'Clothing',
-    status: 'sold',
-    views: 87,
-    inquiries: 8,
-    postedDate: '3 weeks ago',
-  },
-  {
-    id: '4',
-    title: 'Mechanical Keyboard RGB',
-    price: 2500,
-    image:
-      'https://images.unsplash.com/photo-1587829191301-55ec7d9e9c01?w=400&h=300&fit=crop',
-    category: 'Electronics',
-    status: 'active',
-    views: 45,
-    inquiries: 2,
-    postedDate: '5 days ago',
-  },
-]
+interface ApiListing {
+  id: string
+  title: string
+  price: number
+  status: 'draft' | 'active' | 'sold' | 'archived'
+  views_count: number
+  inquiries_count: number
+  created_at: string
+  category: {
+    id: string
+    name: string
+  } | null
+  images: Array<{ image_url: string }>
+}
 
 export function MyListings() {
-  const [listings, setListings] = useState<Listing[]>(SAMPLE_LISTINGS)
+  const [listings, setListings] = useState<Listing[]>([])
   const [showCreateForm, setShowCreateForm] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleDelete = (id: string) => {
-    setListings(listings.filter((l) => l.id !== id))
+  const loadListings = async () => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const me = await fetchApi<{ user: { id: string } }>('/api/me')
+      const response = await fetchApi<{ data: ApiListing[] }>(
+        `/api/listings?sellerId=${encodeURIComponent(me.user.id)}&limit=100&sort=newest`
+      )
+
+      setListings(
+        response.data.map((listing) => ({
+          id: listing.id,
+          title: listing.title,
+          price: listing.price,
+          image: listing.images[0]?.image_url ?? '/placeholder.svg',
+          category: listing.category?.name ?? 'Uncategorized',
+          status: listing.status === 'sold' ? 'sold' : 'active',
+          views: listing.views_count,
+          inquiries: listing.inquiries_count,
+          postedDate: new Date(listing.created_at).toLocaleDateString(),
+        }))
+      )
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : 'Unable to load your listings')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    void loadListings()
+  }, [])
+
+  const handleDelete = async (id: string) => {
+    try {
+      await fetchApi(`/api/listings/${id}`, { method: 'DELETE' })
+      await loadListings()
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : 'Unable to delete listing')
+    }
   }
 
   return (
@@ -97,7 +103,17 @@ export function MyListings() {
         </Button>
       </div>
 
-      {listings.length === 0 ? (
+      {error ? (
+        <Card className="p-6 mb-6 border-destructive/30 bg-destructive/5 text-destructive">
+          {error}
+        </Card>
+      ) : isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Card key={index} className="h-80 animate-pulse bg-muted" />
+          ))}
+        </div>
+      ) : listings.length === 0 ? (
         <Card className="p-12 text-center">
           <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">No listings yet</h3>
@@ -201,6 +217,9 @@ export function MyListings() {
       <CreateListingForm
         open={showCreateForm}
         onOpenChange={setShowCreateForm}
+        onCreated={() => {
+          void loadListings()
+        }}
       />
     </div>
   )

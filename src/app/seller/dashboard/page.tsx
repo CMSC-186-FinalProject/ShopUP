@@ -1,25 +1,158 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Header } from '@/src/components/header'
 import { Footer } from '@/src/components/footer'
 import { SellerDashboardStats } from '@/src/components/seller-dashboard-stats'
 import { MyListings } from '@/src/components/my-listings'
-import { CreateListingForm } from '@/src/components/create-listing-form'
 import { Card } from '@/src/components/ui/card'
-import { Button } from '@/src/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/src/components/ui/tabs'
 import {
-  AlertCircle,
   CheckCircle,
   Clock,
   MessageSquare,
-  Settings,
   Star,
 } from 'lucide-react'
+import { fetchApi } from '@/src/lib/api'
+
+interface SellerProfile {
+  full_name: string | null
+  username: string | null
+  avatar_url: string | null
+  campus: string | null
+}
+
+interface DashboardListing {
+  id: string
+  title: string
+  price: number
+  status: 'draft' | 'active' | 'sold' | 'archived'
+  views_count: number
+  inquiries_count: number
+  created_at: string
+}
+
+interface DashboardOrder {
+  id: string
+  status: 'pending' | 'completed' | 'cancelled' | 'refunded'
+  created_at: string
+  listing: {
+    id: string
+    title: string
+  } | null
+  buyer: {
+    full_name: string | null
+    username: string | null
+  } | null
+}
+
+interface DashboardReview {
+  id: string
+  rating: number
+  comment: string
+  created_at: string
+  reviewer: {
+    full_name: string | null
+    username: string | null
+  } | null
+}
+
+interface ConversationSummary {
+  id: string
+}
+
+function formatRelativeTime(dateString: string) {
+  const date = new Date(dateString)
+  const diffInSeconds = Math.floor((Date.now() - date.getTime()) / 1000)
+
+  if (diffInSeconds < 60) return 'just now'
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`
+  return `${Math.floor(diffInSeconds / 86400)} days ago`
+}
+
+function formatStatus(status: DashboardOrder['status']) {
+  if (status === 'completed') return 'Completed'
+  if (status === 'cancelled') return 'Cancelled'
+  if (status === 'refunded') return 'Refunded'
+  return 'Pending'
+}
 
 export default function SellerDashboard() {
-  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [profile, setProfile] = useState<SellerProfile | null>(null)
+  const [listings, setListings] = useState<DashboardListing[]>([])
+  const [orders, setOrders] = useState<DashboardOrder[]>([])
+  const [reviews, setReviews] = useState<DashboardReview[]>([])
+  const [conversations, setConversations] = useState<ConversationSummary[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadDashboard = async () => {
+      try {
+        const me = await fetchApi<{ user: { id: string }; profile: SellerProfile | null }>('/api/me')
+
+        const [listingsResponse, ordersResponse, reviewsResponse, conversationsResponse] = await Promise.all([
+          fetchApi<{ data: DashboardListing[] }>(`/api/listings?sellerId=${encodeURIComponent(me.user.id)}&limit=100&sort=newest`),
+          fetchApi<{ data: DashboardOrder[] }>('/api/orders'),
+          fetchApi<{ data: DashboardReview[] }>(`/api/reviews?revieweeId=${encodeURIComponent(me.user.id)}`),
+          fetchApi<{ data: ConversationSummary[] }>('/api/conversations'),
+        ])
+
+        if (!isMounted) {
+          return
+        }
+
+        setProfile(me.profile)
+        setListings(listingsResponse.data)
+        setOrders(ordersResponse.data)
+        setReviews(reviewsResponse.data)
+        setConversations(conversationsResponse.data)
+      } catch (error: unknown) {
+        if (isMounted) {
+          setError(error instanceof Error ? error.message : 'Unable to load dashboard data')
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    loadDashboard()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  const stats = useMemo(() => {
+    const activeListings = listings.filter((listing) => listing.status === 'active').length
+    const totalViews = listings.reduce((total, listing) => total + listing.views_count, 0)
+    const totalInquiries = listings.reduce((total, listing) => total + listing.inquiries_count, 0)
+    const totalSales = orders.filter((order) => order.status === 'completed').length
+
+    return {
+      activeListings,
+      totalViews,
+      totalInquiries,
+      totalSales,
+    }
+  }, [listings, orders])
+
+  const averageRating = useMemo(() => {
+    if (reviews.length === 0) {
+      return 0
+    }
+
+    return reviews.reduce((total, review) => total + review.rating, 0) / reviews.length
+  }, [reviews])
+
+  const pendingReviews = Math.max(0, orders.filter((order) => order.status === 'completed').length - reviews.length)
+
+  const displayName = profile?.full_name ?? profile?.username ?? 'Seller'
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -27,21 +160,34 @@ export default function SellerDashboard() {
 
       <main className="flex-1 py-8">
         <div className="container mx-auto px-4 space-y-8">
+          {error ? (
+            <Card className="p-4 border-destructive/30 bg-destructive/5 text-destructive">
+              {error}
+            </Card>
+          ) : null}
+
+          {isLoading ? (
+            <Card className="p-4 text-muted-foreground">
+              Loading dashboard data...
+            </Card>
+          ) : null}
+
           {/* Welcome Section */}
           <div className="bg-gradient-to-r from-primary to-primary/80 rounded-lg p-8 text-white">
-            <h1 className="text-3xl font-bold mb-2">Welcome back, Maria!</h1>
+            <h1 className="text-3xl font-bold mb-2">Welcome back, {displayName}!</h1>
             <p className="text-primary-foreground/90">
-              You&apos;re doing great! Your rating is 4.8★ with 24 successful
-              sales.
+              {reviews.length > 0
+                ? `You're doing great! Your rating is ${averageRating.toFixed(1)}★ with ${stats.totalSales} successful sales.`
+                : 'Your dashboard is ready. Start by creating a new listing or checking recent activity.'}
             </p>
           </div>
 
           {/* Dashboard Stats */}
           <SellerDashboardStats
-            activeListings={4}
-            totalViews={312}
-            totalInquiries={23}
-            totalSales={24}
+            activeListings={stats.activeListings}
+            totalViews={stats.totalViews}
+            totalInquiries={stats.totalInquiries}
+            totalSales={stats.totalSales}
           />
 
           {/* Quick Actions */}
@@ -52,9 +198,9 @@ export default function SellerDashboard() {
                   <MessageSquare className="h-5 w-5 text-blue-600" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold">4 New Messages</h3>
+                  <h3 className="font-semibold">{conversations.length} Conversation Threads</h3>
                   <p className="text-sm text-muted-foreground">
-                    From interested buyers
+                    Active buyer and seller discussions
                   </p>
                 </div>
               </div>
@@ -66,9 +212,9 @@ export default function SellerDashboard() {
                   <Clock className="h-5 w-5 text-amber-600" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold">2 Pending Reviews</h3>
+                  <h3 className="font-semibold">{pendingReviews} Pending Reviews</h3>
                   <p className="text-sm text-muted-foreground">
-                    From recent transactions
+                    Awaiting feedback from completed orders
                   </p>
                 </div>
               </div>
@@ -80,9 +226,9 @@ export default function SellerDashboard() {
                   <CheckCircle className="h-5 w-5 text-green-600" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold">98% Response Rate</h3>
+                  <h3 className="font-semibold">{reviews.length} Customer Reviews</h3>
                   <p className="text-sm text-muted-foreground">
-                    Great job staying responsive!
+                    Real feedback from completed orders
                   </p>
                 </div>
               </div>
@@ -104,77 +250,69 @@ export default function SellerDashboard() {
 
             {/* Orders Tab */}
             <TabsContent value="orders">
-              <Card className="p-12 text-center">
-                <h3 className="text-lg font-semibold mb-2">
-                  Your recent orders
-                </h3>
+              <Card className="p-6 md:p-8">
+                <h3 className="text-lg font-semibold mb-2">Your recent orders</h3>
                 <p className="text-muted-foreground">
-                  You have 3 active orders and 24 completed sales.
+                  You have {orders.length} order{orders.length === 1 ? '' : 's'} in your account.
                 </p>
                 <div className="mt-6 space-y-3">
-                  <OrderCard
-                    buyer="Juan Dela Cruz"
-                    item="Gaming Laptop"
-                    date="2 days ago"
-                    status="Completed"
-                  />
-                  <OrderCard
-                    buyer="Maria Garcia"
-                    item="Calculus Textbook"
-                    date="5 days ago"
-                    status="Pending Review"
-                  />
-                  <OrderCard
-                    buyer="Roberto Santos"
-                    item="Mechanical Keyboard"
-                    date="1 week ago"
-                    status="Completed"
-                  />
+                  {orders.length > 0 ? (
+                    orders.slice(0, 5).map((order) => (
+                      <OrderCard
+                        key={order.id}
+                        buyer={order.buyer?.full_name ?? order.buyer?.username ?? 'Unknown buyer'}
+                        item={order.listing?.title ?? 'Listing'}
+                        date={formatRelativeTime(order.created_at)}
+                        status={formatStatus(order.status)}
+                      />
+                    ))
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-border p-8 text-center text-muted-foreground">
+                      No orders yet.
+                    </div>
+                  )}
                 </div>
               </Card>
             </TabsContent>
 
             {/* Reviews Tab */}
             <TabsContent value="reviews">
-              <Card className="p-12 text-center">
-                <Star className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">
-                  You have a 4.8★ rating
-                </h3>
-                <p className="text-muted-foreground mb-6">
-                  Based on 24 buyer reviews
-                </p>
+              <Card className="p-6 md:p-8">
+                <div className="flex items-center gap-3 mb-3">
+                  <Star className="h-12 w-12 text-yellow-500" />
+                  <div>
+                    <h3 className="text-lg font-semibold">
+                      {reviews.length > 0 ? `${averageRating.toFixed(1)}★ average rating` : 'No reviews yet'}
+                    </h3>
+                    <p className="text-muted-foreground">
+                      {reviews.length > 0
+                        ? `Based on ${reviews.length} buyer review${reviews.length === 1 ? '' : 's'}`
+                        : 'Reviews will appear here once completed orders are rated.'}
+                    </p>
+                  </div>
+                </div>
                 <div className="mt-6 space-y-3">
-                  <ReviewCard
-                    reviewer="Ana Reyes"
-                    rating={5}
-                    comment="Great seller! Item arrived quickly and in perfect condition."
-                    date="2 days ago"
-                  />
-                  <ReviewCard
-                    reviewer="Carlos Mendoza"
-                    rating={5}
-                    comment="Very responsive and honest about the condition. Highly recommended!"
-                    date="1 week ago"
-                  />
-                  <ReviewCard
-                    reviewer="Rosa Fernandez"
-                    rating={4}
-                    comment="Good seller, slight delay in shipping but otherwise excellent."
-                    date="2 weeks ago"
-                  />
+                  {reviews.length > 0 ? (
+                    reviews.slice(0, 5).map((review) => (
+                      <ReviewCard
+                        key={review.id}
+                        reviewer={review.reviewer?.full_name ?? review.reviewer?.username ?? 'Anonymous'}
+                        rating={review.rating}
+                        comment={review.comment || 'No comment provided.'}
+                        date={formatRelativeTime(review.created_at)}
+                      />
+                    ))
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-border p-8 text-center text-muted-foreground">
+                      No reviews yet.
+                    </div>
+                  )}
                 </div>
               </Card>
             </TabsContent>
           </Tabs>
         </div>
       </main>
-
-      {/* Create Listing Form Modal */}
-      <CreateListingForm
-        open={showCreateForm}
-        onOpenChange={setShowCreateForm}
-      />
 
       <Footer />
     </div>

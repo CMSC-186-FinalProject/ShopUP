@@ -12,7 +12,7 @@ interface ProductCardProps {
   image: string
   seller: string
   sellerRating: number
-  condition: 'like-new' | 'good' | 'fair'
+  condition: 'like-new' | 'good' | 'fair' | 'for-parts'
   category: string
   location: string
 }
@@ -34,12 +34,14 @@ export function ProductCard({
     'like-new': 'bg-green-100 text-green-800',
     'good': 'bg-blue-100 text-blue-800',
     'fair': 'bg-yellow-100 text-yellow-800',
+    'for-parts': 'bg-red-100 text-red-800',
   }
 
   const conditionLabels = {
     'like-new': 'Like New',
     'good': 'Good',
     'fair': 'Fair',
+    'for-parts': 'For Parts',
   }
 
   return (

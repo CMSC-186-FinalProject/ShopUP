@@ -1,31 +1,33 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Card } from '@/src/components/ui/card'
 import { Button } from '@/src/components/ui/button'
 import { Input } from '@/src/components/ui/input'
 import { Badge } from '@/src/components/ui/badge'
-import { Upload, X } from 'lucide-react'
-
-const CATEGORIES = [
-  'Textbooks',
-  'Electronics',
-  'Clothing',
-  'Furniture',
-  'Sports',
-  'Books',
-  'Notes',
-  'Other',
-]
+import { Loader2, Plus, Upload, X } from 'lucide-react'
+import { fetchApi } from '@/src/lib/api'
+import { getFriendlyErrorMessage } from '@/src/lib/error-messages'
+import { uploadToCloudinary } from '@/src/lib/cloudinary-upload'
 
 const CONDITIONS = ['Like New', 'Good', 'Fair', 'For Parts']
+
+interface CategoryOption {
+  id: number
+  name: string
+  slug: string
+  description: string | null
+  count: number
+}
 
 interface CreateListingFormProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onCreated?: () => void
 }
 
-export function CreateListingForm({ open, onOpenChange }: CreateListingFormProps) {
+export function CreateListingForm({ open, onOpenChange, onCreated }: CreateListingFormProps) {
+  const listingPhotoInputRef = useRef<HTMLInputElement | null>(null)
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -37,6 +39,41 @@ export function CreateListingForm({ open, onOpenChange }: CreateListingFormProps
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [selectedCondition, setSelectedCondition] = useState<string | null>(null)
+  const [categories, setCategories] = useState<CategoryOption[]>([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false)
+  const [isUploadingImages, setIsUploadingImages] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadCategories = async () => {
+      setIsLoadingCategories(true)
+
+      try {
+        const response = await fetchApi<{ data: CategoryOption[] }>('/api/categories')
+
+        if (isMounted) {
+          setCategories(response.data)
+        }
+      } catch (error: unknown) {
+        if (isMounted) {
+          setError(error instanceof Error ? error.message : 'Unable to load categories')
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingCategories(false)
+        }
+      }
+    }
+
+    loadCategories()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -61,14 +98,87 @@ export function CreateListingForm({ open, onOpenChange }: CreateListingFormProps
     }))
   }
 
+  const handleListingPhotoSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? [])
+
+    if (files.length === 0) {
+      return
+    }
+
+    setIsUploadingImages(true)
+    setError(null)
+
+    try {
+      const uploadedUrls: string[] = []
+
+      for (const file of files) {
+        const uploaded = await uploadToCloudinary(file, 'shopup/listings')
+        uploadedUrls.push(uploaded.secureUrl)
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        images: [...prev.images, ...uploadedUrls],
+      }))
+      } catch (error: unknown) {
+        setError(getFriendlyErrorMessage(error) || 'Unable to upload listing photos')
+    } finally {
+      setIsUploadingImages(false)
+      event.target.value = ''
+    }
+  }
+
+  const handleRemoveListingPhoto = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      images: prev.images.filter((_, currentIndex) => currentIndex !== index),
+    }))
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Form submitted:', formData)
-    // Reset form
-    setFormData({ title: '', description: '', price: '', category: '', condition: '', images: [] })
-    setSelectedCategory(null)
-    setSelectedCondition(null)
-    onOpenChange(false)
+    void (async () => {
+      if (!selectedCondition) {
+        setError('Please choose a condition')
+        return
+      }
+
+      if (!selectedCategory) {
+        setError('Please choose a category')
+        return
+      }
+
+      setIsSubmitting(true)
+      setError(null)
+
+      try {
+        await fetchApi('/api/listings', {
+          method: 'POST',
+          body: JSON.stringify({
+            title: formData.title,
+            description: formData.description,
+            price: Number(formData.price),
+            categoryName: selectedCategory,
+            condition: selectedCondition,
+            status: 'active',
+            images: formData.images.map((imageUrl, index) => ({
+              imageUrl,
+              sortOrder: index,
+            })),
+          }),
+        })
+
+        setFormData({ title: '', description: '', price: '', category: '', condition: '', images: [] })
+        setSelectedCategory(null)
+        setSelectedCondition(null)
+        onCreated?.()
+        onOpenChange(false)
+      } catch (error: unknown) {
+        setError(getFriendlyErrorMessage(error) || 'Unable to create listing')
+      } finally {
+        setIsSubmitting(false)
+      }
+    })()
   }
 
   if (!open) {
@@ -90,6 +200,12 @@ export function CreateListingForm({ open, onOpenChange }: CreateListingFormProps
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {error ? (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+              {error}
+            </div>
+          ) : null}
+
           {/* Title */}
           <div>
             <label className="block text-sm font-semibold mb-2">
@@ -132,20 +248,22 @@ export function CreateListingForm({ open, onOpenChange }: CreateListingFormProps
               <label className="block text-sm font-semibold mb-2">
                 Category *
               </label>
-              <div className="flex flex-wrap gap-2">
-                {CATEGORIES.map((cat) => (
-                  <Badge
-                    key={cat}
-                    variant={
-                      selectedCategory === cat ? 'default' : 'outline'
-                    }
-                    className="cursor-pointer py-1.5 px-2.5"
-                    onClick={() => handleCategorySelect(cat)}
-                  >
-                    {cat}
-                  </Badge>
-                ))}
-              </div>
+              {isLoadingCategories ? (
+                <p className="text-sm text-muted-foreground">Loading categories...</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {categories.map((category) => (
+                    <Badge
+                      key={category.id}
+                      variant={selectedCategory === category.name ? 'default' : 'outline'}
+                      className="cursor-pointer py-1.5 px-2.5"
+                      onClick={() => handleCategorySelect(category.name)}
+                    >
+                      {category.name}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -191,13 +309,61 @@ export function CreateListingForm({ open, onOpenChange }: CreateListingFormProps
             <label className="block text-sm font-semibold mb-2">
               Photos
             </label>
-            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer">
-              <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-              <p className="font-medium">Click to upload or drag and drop</p>
+            <input
+              ref={listingPhotoInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleListingPhotoSelect}
+            />
+
+            <button
+              type="button"
+              onClick={() => listingPhotoInputRef.current?.click()}
+              disabled={isUploadingImages}
+              className="w-full rounded-lg border-2 border-dashed border-border p-8 text-center transition-colors hover:border-primary disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {isUploadingImages ? (
+                <Loader2 className="mx-auto mb-2 h-8 w-8 animate-spin text-muted-foreground" />
+              ) : (
+                <Upload className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
+              )}
+              <p className="font-medium">Click to upload photos</p>
               <p className="text-xs text-muted-foreground">
-                PNG, JPG, GIF up to 10MB each
+                PNG, JPG, GIF, and WEBP up to 10MB each
               </p>
-            </div>
+            </button>
+
+            {formData.images.length > 0 ? (
+              <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3">
+                {formData.images.map((imageUrl, index) => (
+                  <div key={`${imageUrl}-${index}`} className="group relative overflow-hidden rounded-lg border border-border bg-muted">
+                    <img
+                      src={imageUrl}
+                      alt={`Listing upload ${index + 1}`}
+                      className="h-28 w-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveListingPhoto(index)}
+                      className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-background/90 text-foreground opacity-100 shadow-sm transition-opacity md:opacity-0 md:group-hover:opacity-100"
+                      aria-label={`Remove listing photo ${index + 1}`}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => listingPhotoInputRef.current?.click()}
+                  className="flex h-28 items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add more
+                </button>
+              </div>
+            ) : null}
           </div>
 
           {/* Buttons */}
@@ -207,14 +373,16 @@ export function CreateListingForm({ open, onOpenChange }: CreateListingFormProps
               variant="outline"
               onClick={() => onOpenChange(false)}
               className="flex-1"
+              disabled={isSubmitting}
             >
               Cancel
             </Button>
             <Button
               type="submit"
               className="flex-1 bg-primary hover:bg-primary/90"
+              disabled={isSubmitting}
             >
-              Create Listing
+              {isSubmitting ? 'Creating...' : 'Create Listing'}
             </Button>
           </div>
         </form>

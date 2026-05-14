@@ -77,6 +77,11 @@ export function Header() {
             <Link href="/listings" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               Listings
             </Link>
+            {isAuthenticated ? (
+              <Link href="/profile" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                Profile
+              </Link>
+            ) : null}
           </nav>
 
           <div className="hidden md:flex items-center gap-4">
@@ -140,6 +145,15 @@ export function Header() {
               >
                 Testimonials
               </Link>
+              {isAuthenticated ? (
+                <Link
+                  href="/profile"
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Profile
+                </Link>
+              ) : null}
               <div className="flex flex-col gap-2 pt-4 border-t border-border">
                 {isAuthenticated ? (
                   <Button variant="outline" size="sm" className="justify-start" onClick={handleSignOut}>

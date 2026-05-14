@@ -1,179 +1,126 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Header } from '@/src/components/header'
 import { Footer } from '@/src/components/footer'
 import { ListingsHeader } from '@/src/components/listings-header'
 import { ListingsFilters } from '@/src/components/listings-filters'
 import { ProductCard } from '@/src/components/product-card'
+import { fetchApi } from '@/src/lib/api'
 
-// Sample data - in a real app, this would come from a database
-const SAMPLE_ITEMS = [
-  {
-    id: '1',
-    title: 'Advanced Algorithm Design Textbook',
-    price: 1200,
-    image: 'https://rezised-images.knhbt.cz/1920x1920/22367343.webp',
-    seller: 'Maria Santos',
-    sellerRating: 4.8,
-    condition: 'like-new' as const,
-    category: 'Textbooks',
-    location: 'UP Mindanao',
-  },
-  {
-    id: '2',
-    title: 'Gaming Laptop - RTX 3060',
-    price: 35000,
-    image: 'https://i.pcmag.com/imagery/roundups/01hiB08j7yaJGJmPl2YhRRH-84.fit_lim.size_1050x.jpg',
-    seller: 'Juan dela Cruz',
-    sellerRating: 4.9,
-    condition: 'good' as const,
-    category: 'Electronics',
-    location: 'UP Mindanao',
-  },
-  {
-    id: '3',
-    title: 'University PE Jacket',
-    price: 800,
-    image: 'https://down-ph.img.susercontent.com/file/cc6f97ff8fcfe500dd04005534f00eeb',
-    seller: 'Ana Reyes',
-    sellerRating: 4.6,
-    condition: 'like-new' as const,
-    category: 'Clothing',
-    location: 'UP Mindanao',
-  },
-  {
-    id: '4',
-    title: 'Wood Desk for Studying',
-    price: 2500,
-    image: 'https://images.unsplash.com/photo-1593062096033-9a26b09da705?w=400&h=300&fit=crop',
-    seller: 'Carlos Wong',
-    sellerRating: 4.7,
-    condition: 'good' as const,
-    category: 'Furniture',
-    location: 'UP Mindanao',
-  },
-  {
-    id: '5',
-    title: 'Calculus I & II Workbook Bundle',
-    price: 900,
-    image: 'https://m.media-amazon.com/images/I/71u+tx4szoL._AC_UF1000,1000_QL80_.jpg',
-    seller: 'Diana Lopez',
-    sellerRating: 4.5,
-    condition: 'fair' as const,
-    category: 'Textbooks',
-    location: 'UP Mindanao',
-  },
-  {
-    id: '6',
-    title: 'Sony Headphones - Noise Cancelling',
-    price: 8000,
-    image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=300&fit=crop',
-    seller: 'Pedro Santos',
-    sellerRating: 4.8,
-    condition: 'like-new' as const,
-    category: 'Electronics',
-    location: 'UP Mindanao',
-  },
-  {
-    id: '7',
-    title: 'Winter Sweater - Beige',
-    price: 450,
-    image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=300&fit=crop',
-    seller: 'Sofia Reyes',
-    sellerRating: 4.7,
-    condition: 'good' as const,
-    category: 'Clothing',
-    location: 'UP Mindanao',
-  },
-  {
-    id: '8',
-    title: 'Writing Desk Lamp - LED',
-    price: 600,
-    image: 'https://cdn.shopify.com/s/files/1/0674/6796/8799/files/Honeywell-H9-Smart-Sensing-Desk-Lamp-Honeywell-18605069.png',
-    seller: 'Michael Cruz',
-    sellerRating: 4.6,
-    condition: 'like-new' as const,
-    category: 'School Supplies',
-    location: 'UP Mindanao',
-  },
-  {
-    id: '9',
-    title: 'Organic Chemistry Textbook',
-    price: 1500,
-    image: 'https://cbpbook.com/wp-content/uploads/2023/03/a-textbook-of-organic-chemistry-by-myounas.jpg',
-    seller: 'Lucia Fernandez',
-    sellerRating: 4.9,
-    condition: 'good' as const,
-    category: 'Textbooks',
-    location: 'UP Mindanao',
-  },
-  {
-    id: '10',
-    title: 'Logitech Mouse & Keyboard Set',
-    price: 2200,
-    image: 'https://cdn.bdstall.com/product-image/388165_600X600.webp',
-    seller: 'Ramon Gutierrez',
-    sellerRating: 4.8,
-    condition: 'like-new' as const,
-    category: 'Electronics',
-    location: 'UP Mindanao',
-  },
-  {
-    id: '11',
-    title: 'Basketball Shoes - Nike',
-    price: 3500,
-    image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=300&fit=crop',
-    seller: 'Antonio Flores',
-    sellerRating: 4.7,
-    condition: 'good' as const,
-    category: 'Sports Equipment',
-    location: 'UP Mindanao',
-  },
-  {
-    id: '12',
-    title: 'Desk Chair - Ergonomic',
-    price: 3800,
-    image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&h=300&fit=crop',
-    seller: 'Nina Morales',
-    sellerRating: 4.6,
-    condition: 'fair' as const,
-    category: 'Furniture',
-    location: 'UP Mindanao',
-  },
-]
+interface ListingRow {
+  id: string
+  title: string
+  price: number
+  description: string | null
+  condition: 'like_new' | 'good' | 'fair' | 'for_parts'
+  location: string | null
+  campus: string | null
+  seller_rating: number | null
+  seller: {
+    id: string
+    full_name: string | null
+    username: string | null
+  } | null
+  category: {
+    id: string
+    name: string
+    slug: string
+  } | null
+  images: Array<{ image_url: string }>
+  created_at: string
+}
+
+function formatCondition(condition: ListingRow['condition']) {
+  if (condition === 'for_parts') {
+    return 'for-parts' as const
+  }
+
+  if (condition === 'like_new') {
+    return 'like-new' as const
+  }
+
+  return condition
+}
+
+function getFirstImage(listing: ListingRow) {
+  return listing.images[0]?.image_url ?? '/placeholder.svg'
+}
+
+function getSellerName(listing: ListingRow) {
+  return listing.seller?.full_name ?? listing.seller?.username ?? 'Unknown seller'
+}
+
+function getLocation(listing: ListingRow) {
+  return listing.location ?? listing.campus ?? 'UP Mindanao'
+}
 
 export default function ListingsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState('newest')
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<{
+    conditions: string[]
+    categories: string[]
+    priceRange: [number, number]
+  }>({
     conditions: [],
     categories: [],
     priceRange: [0, 50000],
   })
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false)
+  const [listings, setListings] = useState<ListingRow[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadListings = async () => {
+      try {
+        const response = await fetchApi<{ data: ListingRow[] }>('/api/listings?status=active&limit=100')
+
+        if (isMounted) {
+          setListings(response.data)
+        }
+      } catch (error: unknown) {
+        if (isMounted) {
+          setError(error instanceof Error ? error.message : 'Unable to load listings')
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    loadListings()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   const filteredItems = useMemo(() => {
-    let items = SAMPLE_ITEMS
+    let items = listings
 
     // Filter by search query
     if (searchQuery) {
       items = items.filter(
         (item) =>
           item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.seller.toLowerCase().includes(searchQuery.toLowerCase())
+          item.category?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          getSellerName(item).toLowerCase().includes(searchQuery.toLowerCase())
       )
     }
 
     // Filter by condition
     if (filters.conditions.length > 0) {
-      items = items.filter((item) => filters.conditions.includes(item.condition))
+      items = items.filter((item) => filters.conditions.includes(formatCondition(item.condition)))
     }
 
     // Filter by category
     if (filters.categories.length > 0) {
-      items = items.filter((item) => filters.categories.includes(item.category))
+      items = items.filter((item) => filters.categories.includes(item.category?.name ?? ''))
     }
 
     // Filter by price range
@@ -190,16 +137,16 @@ export default function ListingsPage() {
         items.sort((a, b) => b.price - a.price)
         break
       case 'popular':
-        items.sort((a, b) => b.sellerRating - a.sellerRating)
+        items.sort((a, b) => (b.seller_rating ?? 0) - (a.seller_rating ?? 0))
         break
       case 'newest':
       default:
-        // Keep original order
+        items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         break
     }
 
     return items
-  }, [searchQuery, sortBy, filters])
+  }, [searchQuery, sortBy, filters, listings])
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -228,10 +175,34 @@ export default function ListingsPage() {
 
           {/* Products Grid */}
           <div className="flex-1">
-            {filteredItems.length > 0 ? (
+            {error ? (
+              <div className="py-20 text-center">
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  Unable to load listings
+                </h3>
+                <p className="text-muted-foreground">{error}</p>
+              </div>
+            ) : isLoading ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {Array.from({ length: 8 }).map((_, index) => (
+                  <div key={index} className="h-80 rounded-lg border border-border bg-card animate-pulse" />
+                ))}
+              </div>
+            ) : filteredItems.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {filteredItems.map((item) => (
-                  <ProductCard key={item.id} {...item} />
+                  <ProductCard
+                    key={item.id}
+                    id={item.id}
+                    title={item.title}
+                    price={item.price}
+                    image={getFirstImage(item)}
+                    seller={getSellerName(item)}
+                    sellerRating={item.seller_rating ?? 0}
+                    condition={formatCondition(item.condition)}
+                    category={item.category?.name ?? 'Uncategorized'}
+                    location={getLocation(item)}
+                  />
                 ))}
               </div>
             ) : (

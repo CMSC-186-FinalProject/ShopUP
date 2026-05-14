@@ -1,39 +1,66 @@
 'use client'
 
-import { ChevronDown, X } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { ChevronDown } from 'lucide-react'
 import { Button } from '@/src/components/ui/button'
+import { fetchApi } from '@/src/lib/api'
 
 interface ListingsFiltersProps {
   onFiltersChange: (filters: any) => void
 }
 
+interface CategoryItem {
+  id: number
+  name: string
+  count: number
+}
+
+type FilterSection = 'categories' | 'price' | 'condition'
+
 export function ListingsFilters({ onFiltersChange }: ListingsFiltersProps) {
   const [priceRange, setPriceRange] = useState([0, 50000])
   const [selectedConditions, setSelectedConditions] = useState<string[]>([])
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [categories, setCategories] = useState<CategoryItem[]>([])
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true)
   const [expandedSections, setExpandedSections] = useState({
     categories: true,
     price: true,
     condition: true,
   })
 
-  const categories = [
-    { name: 'Textbooks', count: 234 },
-    { name: 'Electronics', count: 156 },
-    { name: 'Clothing', count: 312 },
-    { name: 'Furniture', count: 89 },
-    { name: 'School Supplies', count: 145 },
-    { name: 'Sports Equipment', count: 67 },
-  ]
+  useEffect(() => {
+    let isMounted = true
+
+    const loadCategories = async () => {
+      try {
+        const response = await fetchApi<{ data: Array<{ id: number; name: string; count: number }> }>('/api/categories')
+
+        if (isMounted) {
+          setCategories(response.data)
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingCategories(false)
+        }
+      }
+    }
+
+    loadCategories()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   const conditions = [
     { value: 'like-new', label: 'Like New' },
     { value: 'good', label: 'Good' },
     { value: 'fair', label: 'Fair' },
+    { value: 'for-parts', label: 'For Parts' },
   ]
 
-  const toggleSection = (section: string) => {
+  const toggleSection = (section: FilterSection) => {
     setExpandedSections((prev) => ({
       ...prev,
       [section]: !prev[section],
@@ -103,22 +130,26 @@ export function ListingsFilters({ onFiltersChange }: ListingsFiltersProps) {
           />
         </button>
         {expandedSections.categories && (
-          <div className="space-y-2">
-            {categories.map((category) => (
-              <label key={category.name} className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={selectedCategories.includes(category.name)}
-                  onChange={() => toggleCategory(category.name)}
-                  className="rounded border-border text-primary"
-                />
-                <span className="text-sm text-foreground">{category.name}</span>
-                <span className="text-xs text-muted-foreground ml-auto">
-                  ({category.count})
-                </span>
-              </label>
-            ))}
-          </div>
+          isLoadingCategories ? (
+            <p className="text-sm text-muted-foreground">Loading categories...</p>
+          ) : (
+            <div className="space-y-2">
+              {categories.map((category) => (
+                <label key={category.id} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedCategories.includes(category.name)}
+                    onChange={() => toggleCategory(category.name)}
+                    className="rounded border-border text-primary"
+                  />
+                  <span className="text-sm text-foreground">{category.name}</span>
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    ({category.count})
+                  </span>
+                </label>
+              ))}
+            </div>
+          )
         )}
       </div>
 
