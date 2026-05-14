@@ -3,7 +3,7 @@ import { ShoppingBag, Facebook, Instagram, Twitter } from "lucide-react"
 
 const footerLinks = {
   marketplace: [
-    { name: "Browse Listings", href: "#" },
+    { name: "Browse Listings", href: "/listings" },
     { name: "Sell an Item", href: "#" },
     { name: "Categories", href: "#categories" },
     { name: "How It Works", href: "#how-it-works" }
