@@ -5,8 +5,8 @@ const footerLinks = {
   marketplace: [
     { name: "Browse Listings", href: "/listings" },
     { name: "Sell an Item", href: "/seller/dashboard" },
-    { name: "Categories", href: "#categories" },
-    { name: "How It Works", href: "#how-it-works" }
+    { name: "Categories", href: "/#categories" },
+    { name: "How It Works", href: "/#how-it-works" }
   ],
   support: [
     { name: "Help Center", href: "#" },
