@@ -18,7 +18,7 @@ const SAMPLE_ITEMS = [
     sellerRating: 4.8,
     condition: 'like-new' as const,
     category: 'Textbooks',
-    location: 'UP Mindanao Davao',
+    location: 'UP Mindanao',
   },
   {
     id: '2',
@@ -29,7 +29,7 @@ const SAMPLE_ITEMS = [
     sellerRating: 4.9,
     condition: 'good' as const,
     category: 'Electronics',
-    location: 'UP Mindanao Davao',
+    location: 'UP Mindanao',
   },
   {
     id: '3',
@@ -40,7 +40,7 @@ const SAMPLE_ITEMS = [
     sellerRating: 4.6,
     condition: 'like-new' as const,
     category: 'Clothing',
-    location: 'UP Mindanao Davao',
+    location: 'UP Mindanao',
   },
   {
     id: '4',
@@ -51,7 +51,7 @@ const SAMPLE_ITEMS = [
     sellerRating: 4.7,
     condition: 'good' as const,
     category: 'Furniture',
-    location: 'UP Mindanao Davao',
+    location: 'UP Mindanao',
   },
   {
     id: '5',
@@ -62,7 +62,7 @@ const SAMPLE_ITEMS = [
     sellerRating: 4.5,
     condition: 'fair' as const,
     category: 'Textbooks',
-    location: 'UP Mindanao Davao',
+    location: 'UP Mindanao',
   },
   {
     id: '6',
@@ -73,7 +73,7 @@ const SAMPLE_ITEMS = [
     sellerRating: 4.8,
     condition: 'like-new' as const,
     category: 'Electronics',
-    location: 'UP Mindanao Davao',
+    location: 'UP Mindanao',
   },
   {
     id: '7',
@@ -84,7 +84,7 @@ const SAMPLE_ITEMS = [
     sellerRating: 4.7,
     condition: 'good' as const,
     category: 'Clothing',
-    location: 'UP Mindanao Davao',
+    location: 'UP Mindanao',
   },
   {
     id: '8',
@@ -95,7 +95,7 @@ const SAMPLE_ITEMS = [
     sellerRating: 4.6,
     condition: 'like-new' as const,
     category: 'School Supplies',
-    location: 'UP Mindanao Davao',
+    location: 'UP Mindanao',
   },
   {
     id: '9',
@@ -106,7 +106,7 @@ const SAMPLE_ITEMS = [
     sellerRating: 4.9,
     condition: 'good' as const,
     category: 'Textbooks',
-    location: 'UP Mindanao Davao',
+    location: 'UP Mindanao',
   },
   {
     id: '10',
@@ -117,7 +117,7 @@ const SAMPLE_ITEMS = [
     sellerRating: 4.8,
     condition: 'like-new' as const,
     category: 'Electronics',
-    location: 'UP Mindanao Davao',
+    location: 'UP Mindanao',
   },
   {
     id: '11',
@@ -128,7 +128,7 @@ const SAMPLE_ITEMS = [
     sellerRating: 4.7,
     condition: 'good' as const,
     category: 'Sports Equipment',
-    location: 'UP Mindanao Davao',
+    location: 'UP Mindanao',
   },
   {
     id: '12',
@@ -139,7 +139,7 @@ const SAMPLE_ITEMS = [
     sellerRating: 4.6,
     condition: 'fair' as const,
     category: 'Furniture',
-    location: 'UP Mindanao Davao',
+    location: 'UP Mindanao',
   },
 ]
 
