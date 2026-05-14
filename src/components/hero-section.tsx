@@ -35,7 +35,7 @@ export function HeroSection() {
               <div className="flex flex-col">
                 <div className="flex items-center gap-2 text-primary-foreground">
                   <Users className="h-5 w-5" />
-                  <span className="text-2xl font-bold">2,500+</span>
+                  <span className="text-2xl font-bold">500+</span>
                 </div>
                 <span className="text-sm text-primary-foreground/70">Active Users</span>
               </div>
@@ -49,7 +49,7 @@ export function HeroSection() {
               <div className="flex flex-col">
                 <div className="flex items-center gap-2 text-primary-foreground">
                   <Zap className="h-5 w-5" />
-                  <span className="text-2xl font-bold">5,000+</span>
+                  <span className="text-2xl font-bold">1,000+</span>
                 </div>
                 <span className="text-sm text-primary-foreground/70">Items Traded</span>
               </div>

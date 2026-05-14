@@ -5,7 +5,7 @@ const steps = [
     icon: UserPlus,
     step: "01",
     title: "Create Your Account",
-    description: "Sign up with your UP email address to verify you&apos;re part of the Isko/Iska community."
+    description: "Sign up with your UP email address to verify you' re part of the Isko/Iska community."
   },
   {
     icon: Camera,

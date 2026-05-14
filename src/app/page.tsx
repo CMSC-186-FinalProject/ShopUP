@@ -1,4 +1,4 @@
-import { Header } from "@/src/components/header"
+  import { Header } from "@/src/components/header"
 import { HeroSection } from "@/src/components/hero-section"
 import { FeaturesSection } from "@/src/components/features-section"
 import { HowItWorksSection } from "@/src/components/how-it-works-section"
@@ -16,7 +16,6 @@ export default function Home() {
         <FeaturesSection />
         <HowItWorksSection />
         <CategoriesSection />
-        <TestimonialsSection />
         <CTASection />
       </main>
       <Footer />

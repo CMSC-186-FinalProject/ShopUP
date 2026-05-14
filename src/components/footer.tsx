@@ -32,7 +32,7 @@ export function Footer() {
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
                 <ShoppingBag className="h-5 w-5 text-primary-foreground" />
               </div>
-              <span className="text-xl font-bold text-card-foreground">UPTrade</span>
+              <span className="text-xl font-bold text-card-foreground">ShopUP</span>
             </Link>
             <p className="text-muted-foreground text-sm leading-relaxed mb-6">
               The trusted marketplace for University of the Philippines students. 
@@ -93,7 +93,7 @@ export function Footer() {
 
         <div className="mt-12 pt-8 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground">
-            © 2026 UPTrade. Made with ❤️ for the Isko/Iska community.
+            © 2026 ShopUP. Made with ❤️ for the Isko/Iska community.
           </p>
           <p className="text-sm text-muted-foreground">
             Not affiliated with the University of the Philippines

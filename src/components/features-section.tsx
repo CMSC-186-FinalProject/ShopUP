@@ -24,7 +24,7 @@ const features = [
   {
     icon: Bell,
     title: "Smart Notifications",
-    description: "Get notified when items you&apos;re looking for are listed, or when someone is interested in your items."
+    description: "Get notified when items you're looking for are listed, or when someone is interested in your items."
   },
   {
     icon: Users,
