@@ -15,6 +15,10 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
+function isUpEmailAddress(email: string) {
+  return email.trim().toLowerCase().endsWith('@up.edu.ph')
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -24,17 +28,24 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    const normalizedEmail = email.trim().toLowerCase()
+
+    if (!isUpEmailAddress(normalizedEmail)) {
+      setError('Please use your official @up.edu.ph email address')
+      return
+    }
+
     const supabase = createClient()
     setIsLoading(true)
     setError(null)
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
-        email,
+        email: normalizedEmail,
         password,
       })
       if (error) throw error
-      router.push('/')
+      router.push('/listings')
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'An error occurred')
     } finally {
@@ -43,7 +54,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-background to-muted flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-bold text-primary mb-2">ShopUP</h1>

@@ -15,6 +15,10 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
+function isUpEmailAddress(email: string) {
+  return email.trim().toLowerCase().endsWith('@up.edu.ph')
+}
+
 export default function SignUpPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -25,13 +29,20 @@ export default function SignUpPage() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
+    const normalizedEmail = email.trim().toLowerCase()
+
+    if (!isUpEmailAddress(normalizedEmail)) {
+      setError('Please use your official @up.edu.ph email address')
+      return
+    }
+
     const supabase = createClient()
     setIsLoading(true)
     setError(null)
 
     const redirectTo =
       process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ??
-      `${window.location.origin}/auth/callback?next=/auth/confirmation-success&email=${encodeURIComponent(email)}`
+      `${window.location.origin}/auth/callback?next=/auth/confirmation-success&email=${encodeURIComponent(normalizedEmail)}`
 
     if (password !== confirmPassword) {
       setError('Passwords do not match')
@@ -47,7 +58,7 @@ export default function SignUpPage() {
 
     try {
       const { error } = await supabase.auth.signUp({
-        email,
+        email: normalizedEmail,
         password,
         options: {
           emailRedirectTo: redirectTo,
@@ -62,7 +73,7 @@ export default function SignUpPage() {
         if (alreadyRegistered) {
           const { error: resendError } = await supabase.auth.resend({
             type: 'signup',
-            email,
+            email: normalizedEmail,
             options: {
               emailRedirectTo: redirectTo,
             },
@@ -70,14 +81,14 @@ export default function SignUpPage() {
 
           if (resendError) throw resendError
 
-          router.push(`/auth/sign-up-success?email=${encodeURIComponent(email)}`)
+          router.push(`/auth/sign-up-success?email=${encodeURIComponent(normalizedEmail)}`)
           return
         }
 
         throw error
       }
 
-      router.push(`/auth/sign-up-success?email=${encodeURIComponent(email)}`)
+      router.push(`/auth/sign-up-success?email=${encodeURIComponent(normalizedEmail)}`)
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'An error occurred')
     } finally {
