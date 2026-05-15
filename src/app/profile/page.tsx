@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+
+// Force this page to be dynamic to ensure middleware runs on every request
+export const dynamic = 'force-dynamic'
 import { Header } from '@/src/components/header'
 import { Footer } from '@/src/components/footer'
 import { Card } from '@/src/components/ui/card'

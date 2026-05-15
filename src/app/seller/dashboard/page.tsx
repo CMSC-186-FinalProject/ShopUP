@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Header } from '@/src/components/header'
 import { Footer } from '@/src/components/footer'
 import { SellerDashboardStats } from '@/src/components/seller-dashboard-stats'
@@ -14,6 +15,9 @@ import {
   Star,
 } from 'lucide-react'
 import { fetchApi } from '@/src/lib/api'
+
+// Force this page to be dynamic to ensure middleware runs on every request
+export const dynamic = 'force-dynamic'
 
 interface SellerProfile {
   full_name: string | null
@@ -79,6 +83,7 @@ function formatStatus(status: DashboardOrder['status']) {
 }
 
 export default function SellerDashboard() {
+  const router = useRouter()
   const [profile, setProfile] = useState<SellerProfile | null>(null)
   const [listings, setListings] = useState<DashboardListing[]>([])
   const [orders, setOrders] = useState<DashboardOrder[]>([])
@@ -112,7 +117,12 @@ export default function SellerDashboard() {
         setConversations(conversationsResponse.data)
       } catch (error: unknown) {
         if (isMounted) {
-          setError(error instanceof Error ? error.message : 'Unable to load dashboard data')
+          const errorMessage = error instanceof Error ? error.message : 'Unable to load dashboard data'
+          setError(errorMessage)
+          // Redirect to login if unauthorized
+          if (errorMessage.toLowerCase().includes('unauthorized')) {
+            router.push('/auth/login?redirect=/seller/dashboard')
+          }
         }
       } finally {
         if (isMounted) {

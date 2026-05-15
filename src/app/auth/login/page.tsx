@@ -12,8 +12,9 @@ import {
 import { Input } from '@/src/components/ui/input'
 import { Label } from '@/src/components/ui/label'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
+import { Suspense } from 'react'
 import { fetchApi } from '@/src/lib/api'
 import { setAuthState } from '@/src/lib/auth-state'
 
@@ -33,12 +34,14 @@ function isUpEmailAddress(email: string) {
   return email.trim().toLowerCase().endsWith('@up.edu.ph')
 }
 
-export default function LoginPage() {
+function LoginContent() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get('redirect') ?? '/listings'
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -77,7 +80,7 @@ export default function LoginPage() {
         })
       }
 
-      router.push('/listings')
+      router.push(redirectTo)
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'An error occurred')
     } finally {
@@ -175,5 +178,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   )
 }
