@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { ChevronDown } from 'lucide-react'
 import { Button } from '@/src/components/ui/button'
 import { fetchApi } from '@/src/lib/api'
@@ -23,7 +24,14 @@ interface CategoryItem {
 
 type FilterSection = 'categories' | 'price' | 'condition'
 
+function normalizeCategorySlug(name: string) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+}
+
 export function ListingsFilters({ onFiltersChange, initialCategorySlugs = [], activeFilters }: ListingsFiltersProps) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [priceRange, setPriceRange] = useState([0, 50000])
   const [selectedConditions, setSelectedConditions] = useState<string[]>([])
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
@@ -105,6 +113,19 @@ export function ListingsFilters({ onFiltersChange, initialCategorySlugs = [], ac
     onFiltersChange({ conditions: updated, categories: selectedCategories, priceRange })
   }
 
+  const updateCategoryQuery = (categorySlug?: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+
+    if (categorySlug) {
+      params.set('category', categorySlug)
+    } else {
+      params.delete('category')
+    }
+
+    const queryString = params.toString()
+    router.replace(`${pathname}${queryString ? `?${queryString}` : ''}`)
+  }
+
   const toggleCategory = (name: string) => {
     const updated = selectedCategories.includes(name)
       ? selectedCategories.filter((c) => c !== name)
@@ -112,6 +133,13 @@ export function ListingsFilters({ onFiltersChange, initialCategorySlugs = [], ac
 
     setSelectedCategories(updated)
     onFiltersChange({ conditions: selectedConditions, categories: updated, priceRange })
+
+    if (selectedCategories.includes(name)) {
+      const nextCategory = updated[0]
+      updateCategoryQuery(nextCategory ? normalizeCategorySlug(nextCategory) : undefined)
+    } else {
+      updateCategoryQuery(normalizeCategorySlug(name))
+    }
   }
 
   const handlePriceChange = (value: number[]) => {
@@ -135,6 +163,7 @@ export function ListingsFilters({ onFiltersChange, initialCategorySlugs = [], ac
               setSelectedCategories([])
               setPriceRange([0, 50000])
               onFiltersChange({ conditions: [], categories: [], priceRange: [0, 50000] })
+              updateCategoryQuery(undefined)
             }}
             className="text-xs text-primary hover:text-primary/80"
           >
