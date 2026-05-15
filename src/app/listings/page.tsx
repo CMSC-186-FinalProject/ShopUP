@@ -10,6 +10,7 @@ import { ListingsFilters } from '@/src/components/listings-filters'
 import { ProductCard } from '@/src/components/product-card'
 import { fetchApi } from '@/src/lib/api'
 import { Suspense } from 'react'
+import { CompleteAuthDialog } from '@/src/components/complete-auth-dialog'
 
 interface ListingRow {
   id: string
@@ -271,9 +272,20 @@ function ListingsLoading() {
 }
 
 export default function ListingsPage() {
+  const [showAuthDialog, setShowAuthDialog] = useState(false)
+
+  useEffect(() => {
+    const handler = () => setShowAuthDialog(true)
+    window.addEventListener('shopup:unauthorized', handler as EventListener)
+    return () => window.removeEventListener('shopup:unauthorized', handler as EventListener)
+  }, [])
+
   return (
-    <Suspense fallback={<ListingsLoading />}>
-      <ListingsContent />
-    </Suspense>
+    <>
+      <Suspense fallback={<ListingsLoading />}>
+        <ListingsContent />
+      </Suspense>
+      <CompleteAuthDialog isOpen={showAuthDialog} onOpenChange={setShowAuthDialog} />
+    </>
   )
 }

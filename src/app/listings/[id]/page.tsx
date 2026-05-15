@@ -12,6 +12,7 @@ import { Badge } from '@/src/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/src/components/ui/avatar'
 import { Skeleton } from '@/src/components/ui/skeleton'
 import { CompleteProfileDialog } from '@/src/components/complete-profile-dialog'
+import { CompleteAuthDialog } from '@/src/components/complete-auth-dialog'
 import { fetchApi } from '@/src/lib/api'
 import { getFriendlyErrorMessage } from '@/src/lib/error-messages'
 import { useProfileValidation } from '@/src/hooks/use-profile-validation'
@@ -33,6 +34,7 @@ interface ListingRow {
     full_name: string | null
     username: string | null
     avatar_url: string | null
+    campus: string | null
   } | null
   category: {
     id: string
@@ -57,6 +59,7 @@ export default function ListingDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [isLoadingAction, setIsLoadingAction] = useState(false)
   const [showProfileDialog, setShowProfileDialog] = useState(false)
+  const [showAuthDialog, setShowAuthDialog] = useState(false)
   const [profileAction, setProfileAction] = useState<'contact' | 'order'>('contact')
 
   useEffect(() => {
@@ -184,7 +187,14 @@ export default function ListingDetailPage() {
       })
       router.push(`/conversations/${response.data.id}`)
     } catch (err: unknown) {
-      setError(getFriendlyErrorMessage(err) || 'Unable to start conversation')
+      const message = getFriendlyErrorMessage(err)
+
+      if (message.toLowerCase().includes('unauthorized')) {
+        setShowAuthDialog(true)
+        return
+      }
+
+      setError(message || 'Unable to start conversation')
     } finally {
       setIsLoadingAction(false)
     }
@@ -208,7 +218,14 @@ export default function ListingDetailPage() {
       })
       router.push(`/orders`)
     } catch (err: unknown) {
-      setError(getFriendlyErrorMessage(err) || 'Unable to place order')
+      const message = getFriendlyErrorMessage(err)
+
+      if (message.toLowerCase().includes('unauthorized')) {
+        setShowAuthDialog(true)
+        return
+      }
+
+      setError(message || 'Unable to place order')
     } finally {
       setIsLoadingAction(false)
     }
@@ -227,7 +244,14 @@ export default function ListingDetailPage() {
       }
       setIsFavorited(!isFavorited)
     } catch (err: unknown) {
-      setError(getFriendlyErrorMessage(err) || 'Unable to update favorite')
+      const message = getFriendlyErrorMessage(err)
+
+      if (message.toLowerCase().includes('unauthorized')) {
+        setShowAuthDialog(true)
+        return
+      }
+
+      setError(message || 'Unable to update favorite')
     }
   }
 
@@ -494,6 +518,10 @@ export default function ListingDetailPage() {
         isOpen={showProfileDialog}
         onOpenChange={setShowProfileDialog}
         action={profileAction}
+      />
+      <CompleteAuthDialog
+        isOpen={showAuthDialog}
+        onOpenChange={setShowAuthDialog}
       />
     </div>
   )

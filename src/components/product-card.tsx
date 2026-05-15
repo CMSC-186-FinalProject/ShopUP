@@ -68,6 +68,13 @@ export function ProductCard({
     } catch (err) {
       // Revert to previous state on error
       setIsFavorited(previousState)
+      try {
+        const message = err instanceof Error ? err.message : JSON.stringify(err)
+        if (typeof message === 'string' && message.toLowerCase().includes('unauthorized')) {
+          window.dispatchEvent(new CustomEvent('shopup:unauthorized'))
+          return
+        }
+      } catch {}
     } finally {
       setIsLoading(false)
     }
