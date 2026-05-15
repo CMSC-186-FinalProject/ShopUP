@@ -9,6 +9,7 @@ import { ListingsHeader } from '@/src/components/listings-header'
 import { ListingsFilters } from '@/src/components/listings-filters'
 import { ProductCard } from '@/src/components/product-card'
 import { fetchApi } from '@/src/lib/api'
+import { Suspense } from 'react'
 
 interface ListingRow {
   id: string
@@ -57,7 +58,7 @@ function getLocation(listing: ListingRow) {
   return listing.location ?? listing.campus ?? 'UP Mindanao'
 }
 
-export default function ListingsPage() {
+function ListingsContent() {
   const searchParams = useSearchParams()
   const initialCategorySlugs = useMemo(() => {
     const value = searchParams.get('category')?.trim()
@@ -250,5 +251,29 @@ export default function ListingsPage() {
 
       <Footer />
     </div>
+  )
+}
+
+function ListingsLoading() {
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
+      <Header />
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <div key={index} className="h-80 rounded-lg border border-border bg-card animate-pulse" />
+          ))}
+        </div>
+      </main>
+      <Footer />
+    </div>
+  )
+}
+
+export default function ListingsPage() {
+  return (
+    <Suspense fallback={<ListingsLoading />}>
+      <ListingsContent />
+    </Suspense>
   )
 }

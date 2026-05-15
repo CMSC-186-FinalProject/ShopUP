@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 import { Header } from '@/src/components/header'
 import { Footer } from '@/src/components/footer'
 import { Card } from '@/src/components/ui/card'
@@ -53,7 +54,7 @@ interface OrderRow {
   buyer_id: string
 }
 
-export default function ReviewsPage() {
+function ReviewsContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const orderId = searchParams.get('orderId')
@@ -359,5 +360,32 @@ export default function ReviewsPage() {
         action="review"
       />
     </div>
+  )
+}
+
+function ReviewsLoading() {
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
+      <Header />
+      <main className="flex-1 container mx-auto px-4 py-8">
+        <div className="space-y-6">
+          <Skeleton className="h-96 w-full rounded-lg" />
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <Skeleton key={i} className="h-32 w-full rounded-lg" />
+            ))}
+          </div>
+        </div>
+      </main>
+      <Footer />
+    </div>
+  )
+}
+
+export default function ReviewsPage() {
+  return (
+    <Suspense fallback={<ReviewsLoading />}>
+      <ReviewsContent />
+    </Suspense>
   )
 }

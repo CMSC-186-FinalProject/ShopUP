@@ -12,6 +12,7 @@ import { createClient } from '@/utils/supabase/client'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { Suspense } from 'react'
 
 const RESEND_COOLDOWN_MS = 60_000
 const RESEND_COOLDOWN_STORAGE_PREFIX = 'shopup:resend-cooldown:'
@@ -20,7 +21,7 @@ function getCooldownStorageKey(email: string) {
   return `${RESEND_COOLDOWN_STORAGE_PREFIX}${email.toLowerCase()}`
 }
 
-export default function SignUpSuccessPage() {
+function SignUpSuccessContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const email = searchParams.get('email') ?? ''
@@ -222,5 +223,27 @@ export default function SignUpSuccessPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+function SignUpSuccessLoading() {
+  return (
+    <div className="min-h-screen bg-linear-to-br from-background to-muted flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-center text-muted-foreground">Loading...</p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}
+
+export default function SignUpSuccessPage() {
+  return (
+    <Suspense fallback={<SignUpSuccessLoading />}>
+      <SignUpSuccessContent />
+    </Suspense>
   )
 }

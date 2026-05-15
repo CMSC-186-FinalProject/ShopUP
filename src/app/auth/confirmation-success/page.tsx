@@ -1,5 +1,6 @@
 'use client'
 
+import { Suspense } from 'react'
 import { Button } from '@/src/components/ui/button'
 import {
   Card,
@@ -11,7 +12,7 @@ import {
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 
-export default function ConfirmationSuccessPage() {
+function ConfirmationSuccessContent() {
   const searchParams = useSearchParams()
   const email = searchParams.get('email')
 
@@ -94,5 +95,27 @@ export default function ConfirmationSuccessPage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+function ConfirmationSuccessLoading() {
+  return (
+    <div className="min-h-screen bg-linear-to-br from-background via-background to-muted flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-center text-muted-foreground">Loading...</p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}
+
+export default function ConfirmationSuccessPage() {
+  return (
+    <Suspense fallback={<ConfirmationSuccessLoading />}>
+      <ConfirmationSuccessContent />
+    </Suspense>
   )
 }
