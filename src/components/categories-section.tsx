@@ -18,7 +18,7 @@ const categoryEmojis: Record<string, string> = {
   Electronics: '💻',
   Clothing: '👕',
   Food: '🍔',
-  Furniture: '🛏️',
+  Furniture: '🪑',
   'Dorm Essentials': '🛏️',
   'School Supplies': '✏️',
   Sports: '⚽',
