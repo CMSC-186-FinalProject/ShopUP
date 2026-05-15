@@ -69,6 +69,15 @@ export default function ListingDetailPage() {
 
         setListing(response.data)
 
+        try {
+          const favoritesRes = await fetchApi<{ data: ListingRow[] }>('/api/favorites')
+          if (isMounted) {
+            setIsFavorited(favoritesRes.data.some((fav) => fav.id === listingId))
+          }
+        } catch {
+          // Ignore if user is not authenticated or cannot fetch favorites
+        }
+
         // Load related listings from same category
         if (response.data.category?.slug) {
           const relatedRes = await fetchApi<{ data: ListingRow[] }>(
